@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  文件用途：RealRadio KSP 模组的 MSBuild 项目文件。
+  说明：
+    - 目标框架为 .NET Framework 4.7.2，与 KSP 1.12.5 的运行时一致。
+    - 所有 KSP/Unity DLL 引用均使用相对路径，指向项目根目录下的 "KSP DLL/" 文件夹。
+    - 编译成功后，MSBuild 会自动将生成的 DLL 复制到 GameData/RealRadio/Plugins/，
+      方便直接打包或放入 KSP 安装目录测试。
+    - 路径使用正斜杠以兼容 Windows、Linux 与 Docker 下的 MSBuild/dotnet build。
+-->
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+
+  <!-- 项目基础配置 -->
+  <PropertyGroup>
+    <!-- 默认编译配置，可通过 /p:Configuration=Release 切换 -->
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>RealRadio</RootNamespace>
+    <AssemblyName>RealRadio</AssemblyName>
+    <!-- KSP 1.12.5 基于 Unity 2019.2，对应 .NET Framework 4.7.2 -->
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+
+  <!-- Debug 配置 -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <!-- Release 配置 -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <!-- 程序集引用路径：指向项目根目录下的 KSP DLL 目录，使用相对路径 -->
+  <PropertyGroup>
+    <!-- KspDllPath：KSP/Unity 程序集所在目录，默认为项目根目录下的 "KSP DLL" -->
+    <KspDllPath>$(MSBuildProjectDirectory)/KSP DLL</KspDllPath>
+    <!-- GameDataPluginPath：编译后自动复制到的目标目录 -->
+    <GameDataPluginPath>$(MSBuildProjectDirectory)/GameData/RealRadio/Plugins</GameDataPluginPath>
+  </PropertyGroup>
+
+  <!-- 引用 KSP 与 Unity 程序集 -->
+  <ItemGroup>
+    <!-- KSP 主程序集，包含 KSPAddon、PartModule 等核心类型 -->
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(KspDllPath)/Assembly-CSharp.dll</HintPath>
+      <!-- Private=false 表示不将依赖 DLL 复制到输出目录 -->
+      <Private>False</Private>
+    </Reference>
+    <!-- KSP 第一遍编译程序集，部分类型依赖它 -->
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>$(KspDllPath)/Assembly-CSharp-firstpass.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <!-- KSP 资源相关程序集 -->
+    <Reference Include="KSPAssets">
+      <HintPath>$(KspDllPath)/KSPAssets.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <!-- Unity 引擎核心模块，包含 MonoBehaviour、Debug 等 -->
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(KspDllPath)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <!-- Unity 引擎兼容层，包含部分旧的 UnityEngine API -->
+    <Reference Include="UnityEngine">
+      <HintPath>$(KspDllPath)/UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <!-- Unity IMGUI 模块，用于绘制 UI（按需引用） -->
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(KspDllPath)/UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- 框架引用 -->
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+
+  <!-- 源代码文件 -->
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Source\RealRadioMod.cs" />
+  </ItemGroup>
+
+  <!-- 导入 C# 编译目标 -->
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
+  <!-- 编译后自动复制 DLL 到 GameData/RealRadio/Plugins -->
+  <Target Name="CopyToGameData" AfterTargets="Build">
+    <!-- 确保目标目录存在 -->
+    <MakeDir Directories="$(GameDataPluginPath)" />
+    <!-- 将编译产物复制到 GameData 目录，SkipUnchangedFiles=true 避免无意义覆盖 -->
+    <Copy
+      SourceFiles="$(TargetPath)"
+      DestinationFolder="$(GameDataPluginPath)"
+      SkipUnchangedFiles="true" />
+    <!-- 构建日志输出，便于排查 -->
+    <Message Text="[RealRadio] 已复制 $(TargetPath) 到 $(GameDataPluginPath)" Importance="high" />
+  </Target>
+</Project>
