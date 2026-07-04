@@ -1,10 +1,11 @@
 /*
- * 文件用途：RealRadio 模组的基础入口类。
+ * 文件用途：RealRadio 模组的飞行场景入口类。
  * 说明：
- *   - 通过 [KSPAddon] 特性在 KSP 主菜单启动时初始化模组。
- *   - 继承 MonoBehaviour 并调用 DontDestroyOnLoad，确保场景切换时实例不被销毁。
- *   - 使用单例保护（_initialized 静态标志）防止重复初始化。
- *   - 当前仅作为基础框架，后续可在 Awake/Start 中注册事件、加载配置、初始化网络/音频等模块。
+ *   - 通过 [KSPAddon] 特性在 KSP 进入飞行场景（Flight）时初始化模组。
+ *   - 每次进入飞行场景都会创建新的实例，退出场景时由 Unity 自动销毁，
+ *     保证每次飞行的无线电播报状态相互独立。
+ *   - 负责创建并挂载 ShenzhouRadioController，启动神舟飞船无线电播报系统。
+ *   - 本身不承载业务逻辑，仅作为场景入口与控制器容器。
  */
 
 using UnityEngine;
@@ -12,40 +13,26 @@ using UnityEngine;
 namespace RealRadio
 {
     /// <summary>
-    /// RealRadio 模组主入口。
+    /// RealRadio 模组飞行场景主入口。
     /// </summary>
-    [KSPAddon(KSPAddon.Startup.MainMenu, true)]
+    [KSPAddon(KSPAddon.Startup.Flight, false)]
     public class RealRadioMod : MonoBehaviour
     {
-        // 静态标志，用于确保整个游戏生命周期内只初始化一次。
-        // true 表示已经初始化完成，再次创建时直接销毁自身。
-        private static bool _initialized = false;
-
         /// <summary>
         /// MonoBehaviour 唤醒回调，在对象创建时调用。
+        /// 在此处挂载神舟无线电播报控制器。
         /// </summary>
         private void Awake()
         {
-            // 如果已经初始化过，说明是场景切换后重新加载造成的重复实例，直接销毁
-            if (_initialized)
-            {
-                Destroy(this);
-                return;
-            }
+            Debug.Log("[RealRadio] 飞行场景模组已初始化，版本 0.2.0.0");
 
-            // 标记为已初始化
-            _initialized = true;
-
-            // 使当前 GameObject 在场景切换时不被销毁，保持模组状态
-            DontDestroyOnLoad(this);
-
-            // 输出初始化日志，便于在 KSP 日志中确认模组已加载
-            Debug.Log("[RealRadio] 模组已初始化，版本 0.1.0.0");
+            // 挂载神舟飞船无线电播报控制器
+            // 该控制器负责部件检测、事件监听、音频播放等全部业务逻辑
+            gameObject.AddComponent<ShenzhouRadioController>();
         }
 
         /// <summary>
         /// MonoBehaviour 启动回调，在第一次 Update 之前调用。
-        /// 可在此加载配置、注册事件等。
         /// </summary>
         private void Start()
         {

@@ -90,6 +90,11 @@
       <HintPath>$(KspDllPath)/UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <!-- Unity 音频模块，包含 AudioSource、AudioClip 等类型 -->
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(KspDllPath)/UnityEngine.AudioModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 
   <!-- 框架引用 -->
@@ -102,6 +107,9 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Source\RealRadioMod.cs" />
+    <Compile Include="Source\ShenzhouRadioController.cs" />
+    <Compile Include="Source\RadioAudioPlayer.cs" />
+    <Compile Include="Source\VesselEventTracker.cs" />
   </ItemGroup>
 
   <!-- 导入 C# 编译目标 -->
