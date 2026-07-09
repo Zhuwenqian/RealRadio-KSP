@@ -19,14 +19,14 @@ namespace RealRadio
     public class ShenzhouRadioController : MonoBehaviour
     {
         // 判定为神舟飞船所需检测的关键部件名
-        // 这些名称来自 KIU 部件包 .cfg 中的 name 字段
+        // 实际运行时 KSP 中这些部件名使用点号分隔
         private static readonly HashSet<string> ShenzhouPartNames = new HashSet<string>
         {
-            "KCHS_SZ_ServiceModule",   // 服务舱
-            "KCHS_SZ_OrbitalModule",   // 轨道舱
-            "KCHS_SZ_Re_entryModule",  // 返回舱
-            "KCLV_CZ2F_stage1",        // 长征二号 F 一级燃料箱
-            "KCLV_CZ2F_stage2"         // 长征二号 F 二级燃料箱
+            "KCHS.SZ.ServiceModule",   // 服务舱
+            "KCHS.SZ.OrbitalModule",   // 轨道舱
+            "KCHS.SZ.Re.entryModule",  // 返回舱
+            "KCLV.CZ2F.stage1",        // 长征二号 F 一级燃料箱
+            "KCLV.CZ2F.stage2"         // 长征二号 F 二级燃料箱
         };
 
         // 音频路径前缀，所有 Shenzhou 无线电包音频都位于此目录下
@@ -137,6 +137,8 @@ namespace RealRadio
                 return;
             }
 
+            Debug.Log($"[RealRadio] 开始检测飞行器部件，共 {_activeVessel.Parts.Count} 个");
+
             foreach (Part part in _activeVessel.Parts)
             {
                 if (part == null || part.partInfo == null)
@@ -145,13 +147,34 @@ namespace RealRadio
                 }
 
                 string partName = part.partInfo.name;
-                if (ShenzhouPartNames.Contains(partName))
+                // 归一化部件名：把下划线替换为点号，兼容 cfg 中的下划线写法
+                string normalizedName = NormalizePartName(partName);
+
+                Debug.Log($"[RealRadio] 检测到部件：{partName}（归一化：{normalizedName}）");
+
+                if (ShenzhouPartNames.Contains(normalizedName))
                 {
                     _isShenzhouVessel = true;
                     Debug.Log($"[RealRadio] 检测到神舟飞船关键部件：{partName}");
                     break;
                 }
             }
+        }
+
+        /// <summary>
+        /// 归一化部件名，用于兼容下划线与点号命名差异。
+        /// 例如 "KCHS_SZ_Re_entryModule" 会归一化为 "KCHS.SZ.Re.entryModule"。
+        /// </summary>
+        /// <param name="partName">原始部件名</param>
+        /// <returns>归一化后的部件名</returns>
+        private static string NormalizePartName(string partName)
+        {
+            if (string.IsNullOrEmpty(partName))
+            {
+                return partName;
+            }
+
+            return partName.Replace('_', '.');
         }
 
         /// <summary>
@@ -172,6 +195,10 @@ namespace RealRadio
             {
                 case RadioEventType.EscapeTowerJettison:
                     _audioPlayer.PlayOneShot(AudioPathPrefix + "escapetower deculop");
+                    break;
+
+                case RadioEventType.BoosterSeparation:
+                    _audioPlayer.PlayOneShot(AudioPathPrefix + "booster deculop");
                     break;
 
                 case RadioEventType.StageOneTwoSeparation:

@@ -21,6 +21,9 @@ namespace RealRadio
         /// <summary>逃逸塔分离</summary>
         EscapeTowerJettison,
 
+        /// <summary>助推器分离（CZ-2F/CZ-3 助推器）</summary>
+        BoosterSeparation,
+
         /// <summary>一二级分离（通过级间段抛离判定）</summary>
         StageOneTwoSeparation,
 
@@ -61,17 +64,21 @@ namespace RealRadio
             _triggeredEvents = new HashSet<RadioEventType>();
 
             // 注册各类事件需要追踪的部件名
-            // 这些名称来自 KIU 部件包 .cfg 中的 name 字段
+            // 实际运行时 KSP 中这些部件名使用点号分隔
             TrackPartsForEvent(RadioEventType.EscapeTowerJettison,
-                "KCLV_CZ2F_Escape_tower",
-                "KCLV_CZ2F_Escape_tower_Upper");
+                "KCLV.CZ2F.Escape.tower",
+                "KCLV.CZ2F.Escape.tower.Upper");
+
+            // CZ-3B 助推器燃料箱包含 CZ-2F 样式变体，cfg 中 name = KCLV_CZ3_BOOSTER_TANK
+            TrackPartsForEvent(RadioEventType.BoosterSeparation,
+                "KCLV.CZ3.BOOSTER.TANK");
 
             TrackPartsForEvent(RadioEventType.StageOneTwoSeparation,
-                "KCLV_CZ2F_interstage");
+                "KCLV.CZ2F.interstage");
 
             TrackPartsForEvent(RadioEventType.FairingJettison,
-                "KCLV_CZ2F_Fairing_Upper",
-                "KCLV_CZ2F_Fairing_Mid");
+                "KCLV.CZ2F.Fairing.Upper",
+                "KCLV.CZ2F.Fairing.Mid");
         }
 
         /// <summary>
@@ -87,12 +94,19 @@ namespace RealRadio
 
             foreach (string partName in partNames)
             {
+                // 归一化目标部件名，兼容点号与下划线差异
+                string normalizedTargetName = NormalizePartName(partName);
+
                 // 在当前飞行器中查找所有匹配的部件
                 foreach (Part part in _vessel.Parts)
                 {
-                    if (part != null && part.partInfo != null && part.partInfo.name == partName)
+                    if (part != null && part.partInfo != null)
                     {
-                        parts.Add(part);
+                        string normalizedActualName = NormalizePartName(part.partInfo.name);
+                        if (normalizedActualName == normalizedTargetName)
+                        {
+                            parts.Add(part);
+                        }
                     }
                 }
             }
@@ -102,6 +116,21 @@ namespace RealRadio
                 _trackedParts[key] = parts;
                 Debug.Log($"[RealRadio] 事件 {key} 已追踪 {parts.Count} 个部件");
             }
+        }
+
+        /// <summary>
+        /// 归一化部件名，把下划线替换为点号，兼容不同命名风格。
+        /// </summary>
+        /// <param name="partName">原始部件名</param>
+        /// <returns>归一化后的部件名</returns>
+        private static string NormalizePartName(string partName)
+        {
+            if (string.IsNullOrEmpty(partName))
+            {
+                return partName;
+            }
+
+            return partName.Replace('_', '.');
         }
 
         /// <summary>
